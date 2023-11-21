@@ -1,17 +1,19 @@
+
+# Vertici e Vertigini con Vert.x
+VVV mi piaci event-loop
+
 ---
-theme: ascii
----
 
-# Welcome to Slides
-A terminal based presentation tool
+```java
+record EventLoop(Deque<String> events, Map<String, Consumer<String>> handlers) {
+  EventLoop() { this(new ConcurrentLinkedDeque<>(), new ConcurrentHashMap<>()); }
 
-```go
-package main
+  void dispatch(String event) { events.add(event); }
+  void ...
+}
 
-import "fmt"
-
-func main() {
-  fmt.Println("Written in Go!")
+void  main() {
+  var eventLoop = new EventLoop();
 }
 ```
 
