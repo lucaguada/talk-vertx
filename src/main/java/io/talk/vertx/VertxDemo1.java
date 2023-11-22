@@ -4,6 +4,7 @@ import java.util.Deque;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 import static java.lang.System.out;
@@ -47,29 +48,30 @@ public class VertxDemo1 {
   public static void main(String[] args) {
     final var eventLoop = new EventLoop();
 
-    new Thread(() -> {
-      range(0, 6)
-        .forEach(value -> timeout(1000, () -> eventLoop.emit("tick", STR. "Tick #\{ value }" )));
-      timeout(500, () -> eventLoop.emit("stop", "EventLoop stopped"));
-    }).start();
+    try (final var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+      executor.execute(() -> {
+        range(0, 6).forEach(n -> timeout(1000, () -> eventLoop.emit("tick", STR. "Tick #\{ n }" )));
+        timeout(500, () -> eventLoop.emit("stop", "EventLoop stopped"));
+      });
 
-    new Thread(() -> range(0, 1)
-      .peek(value -> timeout(2500, () -> eventLoop.emit("hello", STR. "Hello World n.\{ value }" )))
-      .forEach(value -> timeout(800, () -> eventLoop.emit("hello", STR. "Hello Universe n.\{ value }" )))
-    ).start();
+      executor.execute(() -> range(0, 2)
+        .peek(n -> timeout(2500, () -> eventLoop.emit("hello", STR. "Hello World n.\{ n }" )))
+        .forEach(n -> timeout(1000, () -> eventLoop.emit("hello", STR. "Hello Universe n.\{ n }" )))
+      );
 
-    eventLoop.emit("hello", "mars");
-    eventLoop.emit("foo", "bar");
+      eventLoop.emit("hello", "mars");
+      eventLoop.emit("foo", "bar");
 
-    eventLoop
-      .on("hello", out::println)
-      .on("tick", out::println)
-      .on("stop", value -> {
-        out.println(value);
-        eventLoop.stop();
-      })
-      .start();
+      eventLoop
+        .on("hello", out::println)
+        .on("tick", out::println)
+        .on("stop", value -> {
+          out.println(value);
+          eventLoop.stop();
+        })
+        .start();
 
-    out.println("EventLoop demo terminated");
+      out.println("EventLoop demo terminated");
+    }
   }
 }
